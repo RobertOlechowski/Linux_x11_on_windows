@@ -9,21 +9,39 @@ def parse_comandline():
     parser.add_option('-c', '--command', action="store", dest="command", help="command to execute")
     options, args = parser.parse_args()
 
-    targetIp, sshKey, user_name, target_command = options.adress, options.key, options.user, options.command
-    import socket
-    selfIP = socket.gethostbyname(socket.gethostname())
-    selfIP = "192.168.10.126" # todo: fix it
+    return options.adress, options.key, options.user, options.command
 
-    print("=======================================================")
-    print('Self   IP : {}'.format(selfIP))
-    print('Target IP : {}'.format(targetIp))
-    print('user name : {}'.format(user_name))
-    print('ssh   Key : {}'.format(sshKey))
-    print('Command   : {}'.format(target_command))
-    print("=======================================================")
 
-    return targetIp, sshKey, user_name, target_command, selfIP
 
+def select_ip(target_str, avalable_list):
+    import ipaddress
+    possible_adr = []
+    for item_ip, mask in avalable_list:
+        target_net = ipaddress.ip_network("{}/{}".format(target_str, mask), strict=False)
+        ip_net = ipaddress.ip_network("{}/{}".format(item_ip, mask), strict=False)
+
+        if target_net == ip_net:
+            possible_adr.append((item_ip, mask))
+
+    if len(possible_adr) == 0:
+        return None
+
+    if len(possible_adr)> 1:
+        raise Exception("More tha one address")
+
+    return possible_adr[0][0]
+
+def get_ip_addresses():
+    import ifaddr
+    result = []
+
+    for adapter in ifaddr.get_adapters():
+        for ip in adapter.ips:
+            if len(ip.ip) == 3:
+                continue
+            result.append((ip.ip, ip.network_prefix))
+
+    return result
 
 def is_online(host, timeout):
     import socket
